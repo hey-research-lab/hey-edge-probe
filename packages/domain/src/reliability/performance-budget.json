@@ -1,0 +1,58 @@
+{
+  "$comment": "HEY's performance budget (2026-10-18, persona audit PA-14/PB-43). One file, read by scripts/smoke.sh (the deploy and daily smoke), scripts/edge-probe.sh (the external probe through Cloudflare, .github/workflows/edge-probe.yml) and packages/domain/src/reliability/platform-health.ts (the hourly verdict). Seconds are server time: time to first byte minus connection setup (curl's time_starttransfer - time_pretransfer). measuredSeconds is the production median of 3 cache-busted reads on 2026-10-18 through Cloudflare's Singapore edge (about 0.05 s of edge-to-origin hop included). targetSeconds is twice that, rounded up to a tenth, at least the class floor; limitSeconds is the class ceiling. docs/PERFORMANCE_BUDGET.md explains every number and is held to this file by performance-budget.test.ts.",
+  "version": "perf-budget-2026-10-18",
+  "measuredOn": "2026-10-18",
+  "tries": 3,
+  "minFailedTries": 2,
+  "classes": {
+    "page": { "floorSeconds": 0.5, "limitSeconds": 2.0 },
+    "api": { "floorSeconds": 0.3, "limitSeconds": 1.0 },
+    "static": { "floorSeconds": 0.2, "limitSeconds": 0.5 }
+  },
+  "release": {
+    "minRoutesOverLimit": 2,
+    "regressionRatio": 2,
+    "regressionFloorSeconds": 1.0
+  },
+  "edge": {
+    "allowanceSeconds": 0.6,
+    "p90LimitSeconds": 1.5
+  },
+  "platform": {
+    "routeLatencyWindowHours": 6,
+    "routeLatencyMinRequests": 20,
+    "routeLatencyMinSlow": 3,
+    "routeLatencyMaxSlowShare": 0.05
+  },
+  "routes": [
+    { "path": "/", "class": "page", "measuredSeconds": 0.49, "targetSeconds": 1.0, "smoke": true, "edge": true },
+    { "path": "/explore", "class": "page", "measuredSeconds": 0.34, "targetSeconds": 0.7, "smoke": true, "edge": true },
+    { "path": "/ships", "class": "page", "measuredSeconds": 0.54, "targetSeconds": 1.1, "smoke": true, "edge": false },
+    { "path": "/updates", "class": "page", "measuredSeconds": 0.44, "targetSeconds": 0.9, "smoke": true, "edge": true },
+    { "path": "/radar", "class": "page", "measuredSeconds": 0.43, "targetSeconds": 0.9, "smoke": true, "edge": false },
+    { "path": "/signals", "class": "page", "measuredSeconds": 0.52, "targetSeconds": 1.1, "smoke": true, "edge": false },
+    { "path": "/pulse", "class": "page", "measuredSeconds": 0.44, "targetSeconds": 0.9, "smoke": true, "edge": false },
+    { "path": "/this-week", "class": "page", "measuredSeconds": 0.25, "targetSeconds": 0.5, "smoke": true, "edge": false },
+    { "path": "/builders", "class": "page", "measuredSeconds": 0.32, "targetSeconds": 0.7, "smoke": true, "edge": false },
+    { "path": "/integrations/uniswap", "class": "page", "measuredSeconds": 0.18, "targetSeconds": 0.5, "smoke": true, "edge": false },
+    { "path": "/integrations/uniswap/hooks", "class": "page", "measuredSeconds": 0.18, "targetSeconds": 0.5, "smoke": true, "edge": false },
+    { "path": "/integrations/uniswap/hooks/{hook}", "class": "page", "measuredSeconds": 0.43, "targetSeconds": 0.9, "smoke": true, "edge": false },
+    { "path": "/project/{project}", "class": "page", "measuredSeconds": 0.39, "targetSeconds": 0.8, "smoke": true, "edge": false },
+    { "path": "/terminal/{project}", "class": "page", "measuredSeconds": 0.23, "targetSeconds": 0.5, "smoke": true, "edge": false },
+    { "path": "/project/chit", "class": "page", "measuredSeconds": 0.51, "targetSeconds": 1.1, "smoke": true, "edge": true },
+    { "path": "/project/autonolas", "class": "page", "measuredSeconds": 0.52, "targetSeconds": 1.1, "smoke": true, "edge": true },
+    { "path": "/project/loom", "class": "page", "measuredSeconds": 0.47, "targetSeconds": 1.0, "smoke": true, "edge": false },
+    { "path": "/api/projects?limit=5", "class": "api", "measuredSeconds": 0.17, "targetSeconds": 0.4, "smoke": true, "edge": true },
+    { "path": "/api/changes?limit=50", "class": "api", "measuredSeconds": 0.11, "targetSeconds": 0.3, "smoke": true, "edge": true },
+    { "path": "/api/ships?limit=48", "class": "api", "measuredSeconds": 0.41, "targetSeconds": 0.9, "smoke": true, "edge": false },
+    { "path": "/api/search/suggest?q=hey", "class": "api", "measuredSeconds": 0.12, "targetSeconds": 0.3, "smoke": true, "edge": false },
+    { "path": "/api/v4-hooks?limit=5", "class": "api", "measuredSeconds": 0.17, "targetSeconds": 0.4, "smoke": true, "edge": false },
+    { "path": "/api/v4-hooks/{hook}", "class": "api", "measuredSeconds": 0.37, "targetSeconds": 0.8, "smoke": true, "edge": false },
+    { "path": "/api/projects/chit/snapshot", "class": "api", "measuredSeconds": 0.26, "targetSeconds": 0.6, "smoke": true, "edge": true },
+    { "path": "/api/projects/loom/usage", "class": "api", "measuredSeconds": 0.15, "targetSeconds": 0.3, "smoke": true, "edge": true },
+    { "path": "/api/projects/autonolas/usage", "class": "api", "measuredSeconds": 0.12, "targetSeconds": 0.3, "smoke": true, "edge": false },
+    { "path": "/api/health", "class": "static", "measuredSeconds": 0.07, "targetSeconds": 0.2, "smoke": true, "edge": true },
+    { "path": "/.well-known/agent-card.json", "class": "static", "measuredSeconds": 0.07, "targetSeconds": 0.2, "smoke": true, "edge": true },
+    { "path": "/mcp", "method": "POST", "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}", "label": "POST /mcp tools/list", "class": "static", "measuredSeconds": 0.08, "targetSeconds": 0.2, "smoke": true, "edge": true }
+  ]
+}

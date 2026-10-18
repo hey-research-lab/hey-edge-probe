@@ -1,0 +1,41 @@
+# The external probe for heyresearch.xyz: HEY's routes as a reader meets them, through Cloudflare, from a machine
+# that is not the server. It reads public pages only (no secret, no credential, no write), labelled
+# hey-internal/edge-probe, and fails when a route answers a server error, a route's median is over its limit, the
+# run's p90 is over its limit, or the browser icons are not a cacheable image. The budget is HEY's own
+# (packages/domain/src/reliability/performance-budget.json, copied from the private repository; docs at
+# https://github.com/hey-research-lab/hey-research-open). It runs here because this repository is public, where
+# Actions minutes are free; HEY's private repository cannot run it.
+name: Edge probe
+
+on:
+  schedule:
+    # 17 minutes past each hour: off the top of the hour, when GitHub's scheduler is busiest and runs late.
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+# One probe at a time; a late run never overlaps the next.
+concurrency:
+  group: edge-probe
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The script, the helpers it sources and the budget it reads; nothing else is needed.
+          sparse-checkout: |
+            scripts/edge-probe.sh
+            scripts/lib
+            packages/domain/src/reliability/performance-budget.json
+          sparse-checkout-cone-mode: false
+      - name: Probe through the edge
+        env:
+          HEY_PROBE_URL: ${{ vars.HEY_PROBE_URL }}
+        run: scripts/edge-probe.sh --base-url "${HEY_PROBE_URL:-https://heyresearch.xyz}"
