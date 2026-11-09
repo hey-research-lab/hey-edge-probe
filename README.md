@@ -1,7 +1,7 @@
 # hey-edge-probe
 
 The external probe for [heyresearch.xyz](https://heyresearch.xyz): every hour, a GitHub Actions run reads HEY
-Research Lab's public pages and API through Cloudflare, the way a visitor does, and fails when a route answers a
+Research Lab's public pages and API through HEY's CDN, the way a visitor does, and fails when a route answers a
 server error or is slower than [HEY's performance budget](packages/domain/src/reliability/performance-budget.json)
 allows. Each run's table is in its job summary.
 

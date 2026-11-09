@@ -1,4 +1,4 @@
-# The external probe for heyresearch.xyz: HEY's routes as a reader meets them, through Cloudflare, from a machine
+# The external probe for heyresearch.xyz: HEY's routes as a reader meets them, through HEY's CDN, from a machine
 # that is not the server. It reads public pages only (no secret, no credential, no write), labelled
 # hey-internal/edge-probe, and fails when a route answers a server error, a route's median is over its limit, the
 # run's p90 is over its limit, or the browser icons are not a cacheable image. The budget is HEY's own

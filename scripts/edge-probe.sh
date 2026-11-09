@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The external probe (2026-10-18, persona audit PA-14): what a reader meets,
-# through Cloudflare, from a machine that is not the server.
+# through HEY's CDN, from a machine that is not the server.
 #
 #   scripts/edge-probe.sh                                   https://heyresearch.xyz
 #   scripts/edge-probe.sh --base-url https://example.test
@@ -13,15 +13,15 @@
 # the deploy smoke, the daily smoke, liveness, the warm-up — so nothing saw a
 # route the edge answered slowly, a reset, or a 520. This reads the routes the
 # performance budget marks `edge` (packages/domain/src/reliability/
-# performance-budget.json, or HEY_PERF_BUDGET_FILE; docs/PERFORMANCE_BUDGET.md)
+# performance-budget.json, or HEY_PERF_BUDGET_FILE)
 # with a cache-buster, each `tries` times, and fails when
 #   - a route answers a server error or nothing on `minFailedTries` tries,
 #   - a route's median server time is over its limit plus the edge allowance
 #     (the edge-to-origin hop from wherever the probe runs), or
 #   - the 90th percentile of every timed read is over `edge.p90LimitSeconds`;
-# and checks that the browser icons answer a cacheable 200 (PB-45). A path
-# ending in an unfinished percent-escape answering a 5xx is a warning (PB-47:
-# an edge rule the founder sets). Server time is first byte minus connection
+# and checks that the browser icons answer a cacheable 200. A path ending in
+# an unfinished percent-escape answering a 5xx is a warning (the repair is an
+# edge rule, not code). Server time is first byte minus connection
 # setup; a route handler's own time, from its Server-Timing header, is printed
 # beside it, so a slow answer says whether the handler worked or waited.
 #
@@ -63,7 +63,7 @@ row() { printf '| %s | %s | %s | %s |\n' "$@" >> "$SUMMARY_ROWS"; }
 
 gt() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a > b) }'; }
 median() { printf '%s\n' "$@" | sort -n | awk '{ v[NR] = $1 } END { print v[int((NR + 1) / 2)] }'; }
-# Every value of one header, joined (Cloudflare sends server-timing twice beside HEY's own).
+# Every value of one header, joined (the CDN sends server-timing twice beside HEY's own).
 header_of() { tr -d '\r' < "$HEADERS" | awk -v n="$1" -F': ' 'tolower($1) == n { v = v (v == "" ? "" : ", ") $2 } END { print v }'; }
 
 # probe METHOD PATH BODY TRY -> "<status> <server seconds> <handler ms or ->", headers in $HEADERS.
@@ -79,7 +79,7 @@ probe() {
   : > "$HEADERS"
   out="$("${CURL[@]}" ${args[@]+"${args[@]}"} -o /dev/null -D "$HEADERS" -w '%{http_code} %{time_pretransfer} %{time_starttransfer}' "$url" 2>/dev/null)" || true
   [[ -n "$out" ]] || out='000 0 0'
-  # HEY's own metric only (`handler`, apps/web/src/lib/observability.ts); Cloudflare's cfEdge/cfOrigin are not read.
+  # HEY's own metric only (`handler`); the CDN's own server-timing entries are not read.
   handler="$(header_of server-timing | grep -oE 'handler;[^,]*dur=[0-9.]+' | head -n 1 | sed 's/.*dur=//')"
   awk -v h="${handler:--}" '{ s = $3 - $2; if (s < 0) s = 0; printf "%s %.3f %s\n", $1, s, h }' <<< "$out"
 }
@@ -145,8 +145,8 @@ if [[ -s "$SAMPLES" ]]; then
 fi
 
 # ------------------------------------------------------------ browser icons
-# Browsers, unfurlers and scanners ask for these on their own (2026-10-18,
-# PB-45): each was a 122 KB uncached not-found render on the one web container.
+# Browsers, unfurlers and scanners ask for these on their own (2026-10-18):
+# each was a 122 KB uncached not-found render on the one web container.
 for path in /favicon.ico /apple-touch-icon.png; do
   read -r code _ _ <<< "$(probe GET "$path" "" 1)"
   type="$(header_of content-type)"; cache="$(header_of cache-control)"
@@ -158,15 +158,15 @@ for path in /favicon.ico /apple-touch-icon.png; do
 done
 
 # ------------------------------------------------ unfinished percent-escape
-# PB-47: Cloudflare lets a path ending in `%` or `%h` through and the origin's
-# HTTP/2 server resets it, so the edge answers 520. The repair is an edge rule
-# (docs/PERFORMANCE_BUDGET.md, "Malformed paths"); until it is set, a warning.
+# The CDN lets a path ending in `%` or `%h` through and the origin's HTTP/2
+# server resets it, so the edge answers 520. The repair is an edge rule; until
+# it is set, a warning.
 for path in '/x%A' '/x%'; do
   : > "$HEADERS"
   code="$("${CURL[@]}" -o /dev/null -w '%{http_code}' "$BASE_URL$path" 2>/dev/null)"
   case "$code" in
     4??) pass "unfinished percent-escape $path -> $code" ;;
-    *) warnc "unfinished percent-escape $path -> ${code:-000}, expected a 4xx: the edge rule in docs/PERFORMANCE_BUDGET.md (Malformed paths) is not set" ;;
+    *) warnc "unfinished percent-escape $path -> ${code:-000}, expected a 4xx: the edge rule for malformed paths is not set" ;;
   esac
 done
 
