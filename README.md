@@ -10,6 +10,6 @@ allows. Each run's table is in its job summary.
   three helpers the probe uses.
 - Run it yourself: `scripts/edge-probe.sh --base-url https://heyresearch.xyz` (needs curl, jq and awk).
 
-Community-run by Hey Research Lab · not affiliated with or endorsed by Robinhood.
+Community-run by HEY Research Lab · not affiliated with or endorsed by Robinhood.
 
 MIT licence.
